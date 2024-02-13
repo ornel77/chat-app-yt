@@ -1,5 +1,6 @@
 import Conversation from '../models/conversation.model.js';
 import Message from '../models/message.model.js';
+import { getReceiverSocketId, io } from '../socket/socket.js';
 
 export const sendMessage = async (req, res) => {
   try {
@@ -33,13 +34,20 @@ export const sendMessage = async (req, res) => {
       conversation.messages.push(newMessage._id);
     }
 
-    // SOCKET IO FUNCTIONALITY WILL GO HERE
-
     // await conversation.save()
     // await newMessage.save()
-
+    
     // To optimize these two await we can run theme in parallel
     await Promise.all([conversation.save(), newMessage.save()]);
+    
+    // SOCKET IO FUNCTIONALITY WILL GO HERE
+    // send the msg to the other user
+    const receiverSocketId = getReceiverSocketId(receiverId)
+    if(receiverSocketId) {
+      // not emit because we want to send the msg to a specific user
+      io.to(receiverSocketId).emit('newMessage', newMessage)
+    }
+
 
     res.status(201).json(newMessage);
   } catch (error) {
